@@ -1,7 +1,9 @@
 package com.quickblox.AndroidVideoChat.camera;
 
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
@@ -9,6 +11,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ImageView;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
@@ -45,6 +48,20 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         this.pictureFromCameraImageView = pictureFromCameraImageView;
     }
 
+    public interface OnFrameChangeListener {
+        public void onFrameChange(byte[] mas);
+    }
+
+    public OnFrameChangeListener onFrameChangeListener;
+
+    public OnFrameChangeListener getOnFrameChangeListener() {
+        return onFrameChangeListener;
+    }
+
+    public void setOnFrameChangeListener(OnFrameChangeListener onFrameChangeListener) {
+        this.onFrameChangeListener = onFrameChangeListener;
+    }
+
     public void surfaceCreated(SurfaceHolder holder) {
         camera = Camera.open();
         try {
@@ -72,7 +89,8 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                     // Pass YUV data to draw-on-top companion
                     System.arraycopy(data, 0, drawOnTop.yuvData, 0, data.length);
                     drawOnTop.invalidate();
-                    applyPicture();
+                    if (onFrameChangeListener != null)
+                        onFrameChangeListener.onFrameChange(encodeToBytes(drawOnTop.bitmap));
                 }
             });
 
@@ -83,7 +101,14 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
 
-    private void applyPicture() {
+    private byte[] encodeToBytes(Bitmap bmp) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+        byte[] byteArray = stream.toByteArray();
+        return byteArray;
+    }
+
+    public void applyPicture(byte[] data) {
 
         int width = drawOnTop.imageWidth;
         int height = drawOnTop.imageHeight;

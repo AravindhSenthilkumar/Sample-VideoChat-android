@@ -7,19 +7,29 @@
     <uses-sdk android:minSdkVersion="10"/>
     <application android:label="@string/app_name">
         <activity
-            android:name="MyActivity"
-            android:label="@string/app_name"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+                android:name=".MyActivity"
+                android:label="@string/app_name"
+                android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+
+        <service android:name=".websockets.ChatService">
+            <intent-filter>
+                <action android:name="com.example.WebSocketsSimpleChat.START_CHAT"></action>
+                <action android:name="com.example.WebSocketsSimpleChat.STOP_CHAT"></action>
+                <action android:name="com.example.WebSocketsSimpleChat.SEND_MESSAGE"></action>
+            </intent-filter>
+        </service>
     </application>
 
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.FLASHLIGHT"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+
     <uses-feature android:name="android.hardware.camera"/>
     <uses-feature android:name="android.hardware.camera.autofocus"/>
     <uses-feature android:name="android.hardware.camera.flash"/>
