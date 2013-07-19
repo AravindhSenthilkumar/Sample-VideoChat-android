@@ -1,9 +1,7 @@
 package com.quickblox.AndroidVideoChat.camera;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Matrix;
+import android.graphics.*;
 import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
@@ -21,7 +19,7 @@ import java.io.IOException;
  * Time: 20:49
  */
 public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
-
+    private static String TAG = CameraSurfaceView.class.getName();
 
     private SurfaceHolder surfaceHolder;
     private Camera camera;
@@ -63,34 +61,36 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
-        camera = Camera.open();
+        camera = Camera.open(1);
         try {
             camera.setPreviewDisplay(holder);
             camera.setDisplayOrientation(90);
 
             // CameraSurfaceView callback used whenever new viewfinder frame is available
             camera.setPreviewCallback(new Camera.PreviewCallback() {
-                public void onPreviewFrame(byte[] data, Camera camera) {
+                public void onPreviewFrame(final byte[] data, final Camera camera) {
                     if ((drawOnTop == null) || isFinished)
                         return;
 
-                    if (drawOnTop.bitmap == null) {
-                        // Initialize the draw-on-top companion
-                        Camera.Parameters params = camera.getParameters();
-                        drawOnTop.imageWidth = params.getPreviewSize().width;
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            byte[] out = null;
+                            Camera.Parameters parameters = camera.getParameters();
+                            int imageFormat = parameters.getPreviewFormat();
+                            if (imageFormat == ImageFormat.NV21) {
+                                Rect rect = new Rect(0, 0, parameters.getPreviewSize().width, parameters.getPreviewSize().height);
+                                YuvImage img = new YuvImage(data, ImageFormat.NV21, parameters.getPreviewSize().width, parameters.getPreviewSize().height, null);
+                                ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+                                img.compressToJpeg(rect, 20, outStream);
+                                out = outStream.toByteArray();
+                            }
+                            if (onFrameChangeListener != null) {
+                                onFrameChangeListener.onFrameChange(out);
+                            }
+                        }
+                    }).start();
 
-                        drawOnTop.imageHeight = params.getPreviewSize().height;
-                        drawOnTop.bitmap = Bitmap.createBitmap(drawOnTop.imageWidth,
-                                drawOnTop.imageHeight, Bitmap.Config.RGB_565);
-                        drawOnTop.rgbData = new int[drawOnTop.imageWidth * drawOnTop.imageHeight];
-                        drawOnTop.yuvData = new byte[data.length];
-
-                    }
-                    // Pass YUV data to draw-on-top companion
-                    System.arraycopy(data, 0, drawOnTop.yuvData, 0, data.length);
-                    drawOnTop.invalidate();
-                    if (onFrameChangeListener != null)
-                        onFrameChangeListener.onFrameChange(encodeToBytes(drawOnTop.bitmap));
                 }
             });
 
@@ -101,22 +101,12 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
 
-    private byte[] encodeToBytes(Bitmap bmp) {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.JPEG, 80, stream);
-        byte[] byteArray = stream.toByteArray();
-        return byteArray;
-    }
 
-    public void applyPicture(byte[] data) {
-
-        int width = drawOnTop.imageWidth;
-        int height = drawOnTop.imageHeight;
-        Matrix matrix = new Matrix();
-        matrix.postRotate(90);
-        Bitmap rotatedBitmap = Bitmap.createBitmap(drawOnTop.bitmap, 0, 0,
-                width, height, matrix, true);
-        pictureFromCameraImageView.setImageBitmap(rotatedBitmap);
+    public void applyPicture(Bitmap bitmap) {
+        long time = System.currentTimeMillis();
+        if (bitmap != null)
+            pictureFromCameraImageView.setImageBitmap(bitmap);
+//        Log.w(TAG, "settingPicture time=" + (System.currentTimeMillis() - time));
     }
 
 
@@ -135,7 +125,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         // the preview.
         Camera.Parameters parameters = camera.getParameters();
         parameters.setPreviewSize(320, 240);
-        parameters.setPreviewFrameRate(15);
+        parameters.setPreviewFrameRate(25);
         parameters.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
         parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
         camera.setParameters(parameters);

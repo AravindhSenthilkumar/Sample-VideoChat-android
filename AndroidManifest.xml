@@ -2,9 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.quickblox.AndroidVideoChat"
           android:versionCode="1"
-          android:versionName="1.0">
+          android:versionName="1.0"
+          android:installLocation="auto">
 
-    <uses-sdk android:minSdkVersion="10"/>
+    <uses-sdk android:minSdkVersion="8"/>
     <application android:label="@string/app_name">
         <activity
                 android:name=".MyActivity"
@@ -17,7 +18,16 @@
         </activity>
 
 
-        <service android:name=".websockets.ChatService">
+        <!--<service android:name=".websockets.ChatService">-->
+            <!--<intent-filter>-->
+                <!--<action android:name="com.example.WebSocketsSimpleChat.START_CHAT"></action>-->
+                <!--<action android:name="com.example.WebSocketsSimpleChat.STOP_CHAT"></action>-->
+                <!--<action android:name="com.example.WebSocketsSimpleChat.SEND_MESSAGE"></action>-->
+            <!--</intent-filter>-->
+        <!--</service>-->
+
+
+        <service android:name=".websockets.BinaryChatService">
             <intent-filter>
                 <action android:name="com.example.WebSocketsSimpleChat.START_CHAT"></action>
                 <action android:name="com.example.WebSocketsSimpleChat.STOP_CHAT"></action>

@@ -4,15 +4,19 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.*;
+import android.graphics.Matrix;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.FragmentActivity;
 import android.view.*;
 import android.widget.ImageView;
 import com.quickblox.AndroidVideoChat.camera.CameraSurfaceView;
-import com.quickblox.AndroidVideoChat.websockets.ChatMessage;
+import com.quickblox.AndroidVideoChat.websockets.BinaryChatService;
 import com.quickblox.AndroidVideoChat.websockets.ChatService;
 
 public class MyActivity extends FragmentActivity {
@@ -43,8 +47,7 @@ public class MyActivity extends FragmentActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main);
-//      ServerConnect.runUdpClient();
-        Intent intent = new Intent(this, ChatService.class);
+        Intent intent = new Intent(this, BinaryChatService.class);
         bindService(intent, myConnection, Context.BIND_AUTO_CREATE);
 
 
@@ -53,86 +56,57 @@ public class MyActivity extends FragmentActivity {
         cameraPreview.setPictureFromCameraImageView(pictureFromCameraImageView);
 
         addContentView(cameraPreview.getDrawOnTop(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-//      startStreaming();
     }
 
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-//      recorder.release();
-//      speaker.release();
+        startService(new Intent(ChatService.STOP_CHAT));
     }
 
 
-    public void startStreaming() {
-        Thread streamThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
 
-                int minBufSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat);
-                byte[] buffer = new byte[minBufSize];
-                recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channelConfig, audioFormat, minBufSize);
-                recorder.startRecording();
-
-
-                speaker = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, channelConfig, audioFormat, 2048, AudioTrack.MODE_STREAM);
-                speaker.play();
-
-                while (status == true) {
-                    minBufSize = recorder.read(buffer, 0, buffer.length);
-                    speaker.write(buffer, 0, minBufSize);
-                }
-            }
-        });
-        streamThread.start();
-    }
 
 
     private boolean isBound;
-    private ChatService chatService;
+    private BinaryChatService chatService;
+
+
     private ServiceConnection myConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
-            ChatService.MyLocalBinder binder = (ChatService.MyLocalBinder) service;
+            BinaryChatService.MyLocalBinder binder = (BinaryChatService.MyLocalBinder) service;
             chatService = binder.getService();
             isBound = true;
 
-            chatService.setOnMessageReceive(new ChatService.OnMessageReceive() {
+            chatService.setOnMessageReceive(new BinaryChatService.OnBinaryMessageReceive() {
                 @Override
-                public void onMessage(final ChatMessage message) {
+                public void onMessage(final byte[] data) {
+                    Matrix matrix = new Matrix();
+                    matrix.postRotate(-90);
+                    final Bitmap origin = BitmapFactory.decodeByteArray(data, 0, data.length);
+                    final Bitmap rotatedBitmap = Bitmap.createBitmap(origin, 0, 0,
+                            origin.getWidth(), origin.getHeight(), matrix, true);
+                    origin.recycle();
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            String type = message.getType();
-
-                            if (type.equals(ChatService.CONNECTED)) {
-                                cameraPreview.setOnFrameChangeListener(new CameraSurfaceView.OnFrameChangeListener() {
-                                    @Override
-                                    public void onFrameChange(byte[] mas) {
-                                        // byte[] bytes = message.getBinaryBody();
-                                        // Log.w("MyActivity", "onFrameChange");
-                                        // pictureFromCameraImageView.setImageBitmap(BitmapFactory.decodeByteArray(mas, 0, mas.length));
-                                        chatService.sendMessage(mas);
-                                    }
-                                });
-                            } else if (type.equals(ChatService.USER_JOINED)) {
-
-                            } else if (type.equals(ChatService.MESSAGE_SEND)) {
-                                pictureFromCameraImageView.setImageBitmap(
-                                        BitmapFactory.decodeByteArray(message.getBinaryBody(), 0,
-                                                message.getBinaryBody().length));
-                            } else if (type.equals(ChatService.MESSAGE_RECEIVED)) {
-                                pictureFromCameraImageView.setImageBitmap(
-                                        BitmapFactory.decodeByteArray(message.getBinaryBody(), 0,
-                                                message.getBinaryBody().length));
-                            } else if (type.equals(ChatService.USER_SPLIT)) {
-
-                            }
+                            cameraPreview.applyPicture(rotatedBitmap);
                         }
                     });
 
+                }
+
+                @Override
+                public void onServerConnected() {
+                    cameraPreview.setOnFrameChangeListener(new CameraSurfaceView.OnFrameChangeListener() {
+                        @Override
+                        public void onFrameChange(byte[] mas) {
+                            chatService.sendMessage(mas);
+                        }
+                    });
                 }
             });
             startService(new Intent(ChatService.START_CHAT));
@@ -148,6 +122,7 @@ public class MyActivity extends FragmentActivity {
 
     };
 
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.chat_activity, menu);
@@ -161,7 +136,7 @@ public class MyActivity extends FragmentActivity {
             finish();
             return true;
         }
-        return super.onOptionsItemSelected(item);    //To change body of overridden methods use File | Settings | File Templates.
+        return super.onOptionsItemSelected(item);
     }
 
 
