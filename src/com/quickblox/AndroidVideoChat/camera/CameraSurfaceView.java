@@ -82,7 +82,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                                 Rect rect = new Rect(0, 0, parameters.getPreviewSize().width, parameters.getPreviewSize().height);
                                 YuvImage img = new YuvImage(data, ImageFormat.NV21, parameters.getPreviewSize().width, parameters.getPreviewSize().height, null);
                                 ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-                                img.compressToJpeg(rect, 20, outStream);
+                                img.compressToJpeg(rect, 75, outStream);
                                 out = outStream.toByteArray();
                             }
                             if (onFrameChangeListener != null) {
@@ -125,7 +125,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         // the preview.
         Camera.Parameters parameters = camera.getParameters();
         parameters.setPreviewSize(320, 240);
-        parameters.setPreviewFrameRate(25);
+        parameters.setPreviewFrameRate(15);
         parameters.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
         parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
         camera.setParameters(parameters);
