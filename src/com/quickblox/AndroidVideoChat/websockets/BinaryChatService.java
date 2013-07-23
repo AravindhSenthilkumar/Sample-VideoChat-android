@@ -6,10 +6,11 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 import com.codebutler.android_websockets.WebSocketClient;
-import org.apache.http.message.BasicNameValuePair;
 
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created with IntelliJ IDEA.
@@ -52,12 +53,9 @@ public class BinaryChatService extends Service {
     @Override
     public void onCreate() {
         messages = new ArrayList<ChatMessage>();
-        List<BasicNameValuePair> extraHeaders = Arrays.asList(
-                new BasicNameValuePair("Cookie", "ssl=false")
-        );
 
-
-        socket = new WebSocketClient(URI.create("ws://192.168.0.116:8000"), new WebSocketClient.Listener() {
+        Log.d(LOGTAG, "OnCreate");
+        socket = new WebSocketClient(URI.create("ws://192.168.0.101:8000"), new WebSocketClient.Listener() {
             long lastTime;
             long count = 0;
 
@@ -80,7 +78,9 @@ public class BinaryChatService extends Service {
                 count++;
 
                 if (onMessageReceive != null) {
-                    onMessageReceive.onMessage(data);
+
+                            onMessageReceive.onMessage(data);
+
                 }
 
                 if (System.currentTimeMillis() - lastTime > 2000) {
@@ -101,7 +101,7 @@ public class BinaryChatService extends Service {
                 Log.e(LOGTAG, "Error!", error);
             }
 
-        }, extraHeaders);
+        }, null);
 
         super.onCreate();
     }

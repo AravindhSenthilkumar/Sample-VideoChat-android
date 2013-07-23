@@ -7,7 +7,6 @@ import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.widget.ImageView;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,7 +25,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     private Draw drawOnTop;
     private boolean isFinished;
     private Context ctx;
-    private ImageView pictureFromCameraImageView;
+
 
     public CameraSurfaceView(Context ctx, AttributeSet attrSet) {
         super(ctx, attrSet);
@@ -42,9 +41,6 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         return drawOnTop;
     }
 
-    public void setPictureFromCameraImageView(ImageView pictureFromCameraImageView) {
-        this.pictureFromCameraImageView = pictureFromCameraImageView;
-    }
 
     public interface OnFrameChangeListener {
         public void onFrameChange(byte[] mas);
@@ -61,7 +57,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
-        camera = Camera.open(1);
+        camera = Camera.open();
         try {
             camera.setPreviewDisplay(holder);
             camera.setDisplayOrientation(90);
@@ -82,11 +78,13 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                                 Rect rect = new Rect(0, 0, parameters.getPreviewSize().width, parameters.getPreviewSize().height);
                                 YuvImage img = new YuvImage(data, ImageFormat.NV21, parameters.getPreviewSize().width, parameters.getPreviewSize().height, null);
                                 ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-                                img.compressToJpeg(rect, 75, outStream);
+                                img.compressToJpeg(rect, 45, outStream);
                                 out = outStream.toByteArray();
                             }
                             if (onFrameChangeListener != null) {
+
                                 onFrameChangeListener.onFrameChange(out);
+                                //onFrameChangeListener.onFrameChange(new byte[1000]);
                             }
                         }
                     }).start();
@@ -98,15 +96,6 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
             camera.release();
             camera = null;
         }
-    }
-
-
-
-    public void applyPicture(Bitmap bitmap) {
-        long time = System.currentTimeMillis();
-        if (bitmap != null)
-            pictureFromCameraImageView.setImageBitmap(bitmap);
-//        Log.w(TAG, "settingPicture time=" + (System.currentTimeMillis() - time));
     }
 
 
@@ -124,7 +113,8 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         // Now that the size is known, set up the camera parameters and begin
         // the preview.
         Camera.Parameters parameters = camera.getParameters();
-        parameters.setPreviewSize(320, 240);
+
+        parameters.setPreviewSize(320,240);
         parameters.setPreviewFrameRate(15);
         parameters.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
         parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
@@ -133,6 +123,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 
 
     }
+
 
     public class Draw extends View {
 

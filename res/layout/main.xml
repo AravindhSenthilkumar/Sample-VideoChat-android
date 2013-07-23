@@ -1,24 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             android:layout_width="fill_parent"
-             android:layout_height="fill_parent"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent" >
 
-    >
-
-
-
-    <ImageView
-        android:id="@+id/pictureFromCameraImageView"
-        android:layout_height="fill_parent"
-        android:layout_width="fill_parent"
-        android:background="@android:color/white"
-        android:layout_gravity="right"/>
 
     <com.quickblox.AndroidVideoChat.camera.CameraSurfaceView
             android:id="@+id/camera_preview"
-            android:layout_width="100dp"
-            android:layout_height="130dp"
-            android:layout_gravity="right"
-            />
-</FrameLayout>
+            android:layout_width="120dp"
+            android:layout_height="160dp"
+            android:layout_gravity="center_horizontal|top"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="10dp"
+            android:layout_alignParentTop="true"/>
+
+    <RelativeLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:gravity="center_horizontal"
+            android:layout_below="@+id/camera_preview">
+
+        <ImageView
+                android:layout_width="120dp"
+                android:layout_height="160dp"
+                android:background="@android:color/white"
+                android:layout_margin="10dp"
+                android:id="@+id/chatFrame1"/>
+
+        <ImageView
+                android:layout_width="120dp"
+                android:layout_height="160dp"
+                android:id="@+id/chatFrame4"
+                android:layout_toRightOf="@+id/chatFrame1"
+
+                android:background="@android:color/white"
+                android:layout_below="@+id/chatFrame1"/>
+
+        <ImageView
+                android:layout_width="120dp"
+                android:layout_height="160dp"
+                android:id="@+id/chatFrame3"
+                android:layout_alignLeft="@+id/chatFrame1"
+                android:background="@android:color/white"
+                android:layout_below="@+id/chatFrame1"/>
+
+        <ImageView
+                android:layout_width="120dp"
+                android:layout_height="160dp"
+                android:id="@+id/chatFrame2"
+
+                android:layout_toRightOf="@+id/chatFrame1"
+                android:background="@android:color/white"
+                android:layout_alignTop="@+id/chatFrame1"/>
+    </RelativeLayout>
+</RelativeLayout>
 

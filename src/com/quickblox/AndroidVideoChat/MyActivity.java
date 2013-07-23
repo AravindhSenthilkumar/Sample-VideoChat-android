@@ -1,9 +1,9 @@
 package com.quickblox.AndroidVideoChat;
 
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.*;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -12,21 +12,32 @@ import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.view.*;
 import android.widget.ImageView;
 import com.quickblox.AndroidVideoChat.camera.CameraSurfaceView;
 import com.quickblox.AndroidVideoChat.websockets.BinaryChatService;
 import com.quickblox.AndroidVideoChat.websockets.ChatService;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+
 public class MyActivity extends FragmentActivity {
 
 
+    private static final String TAG = MyActivity.class.getName();
     private CameraSurfaceView cameraPreview;
-    private ImageView pictureFromCameraImageView;
+    private ImageView videoFrame1;
+    private ImageView videoFrame2;
+    private ImageView videoFrame3;
+    private ImageView videoFrame4;
 
     private AudioTrack speaker;
     private AudioRecord recorder;
+
+    public static byte PHONE_ID = 0;
 
 
     //Audio Configuration.
@@ -37,23 +48,25 @@ public class MyActivity extends FragmentActivity {
     private boolean status = true;
 
     AudioTrack audioTrack;
+    private PowerManager.WakeLock mWakeLock;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main);
-        Intent intent = new Intent(this, BinaryChatService.class);
-        bindService(intent, myConnection, Context.BIND_AUTO_CREATE);
+        onCreateDialogSingleChoice().show();
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-
-        pictureFromCameraImageView = (ImageView) findViewById(R.id.pictureFromCameraImageView);
+        videoFrame1 = (ImageView) findViewById(R.id.chatFrame1);
+        videoFrame2 = (ImageView) findViewById(R.id.chatFrame2);
+        videoFrame3 = (ImageView) findViewById(R.id.chatFrame3);
+        videoFrame4 = (ImageView) findViewById(R.id.chatFrame4);
         cameraPreview = (CameraSurfaceView) findViewById(R.id.camera_preview);
-        cameraPreview.setPictureFromCameraImageView(pictureFromCameraImageView);
+
 
         addContentView(cameraPreview.getDrawOnTop(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
@@ -66,9 +79,6 @@ public class MyActivity extends FragmentActivity {
     }
 
 
-
-
-
     private boolean isBound;
     private BinaryChatService chatService;
 
@@ -77,41 +87,14 @@ public class MyActivity extends FragmentActivity {
 
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
+            Log.d(TAG, "Service connected");
             BinaryChatService.MyLocalBinder binder = (BinaryChatService.MyLocalBinder) service;
             chatService = binder.getService();
             isBound = true;
-
-            chatService.setOnMessageReceive(new BinaryChatService.OnBinaryMessageReceive() {
-                @Override
-                public void onMessage(final byte[] data) {
-                    Matrix matrix = new Matrix();
-                    matrix.postRotate(-90);
-                    final Bitmap origin = BitmapFactory.decodeByteArray(data, 0, data.length);
-                    final Bitmap rotatedBitmap = Bitmap.createBitmap(origin, 0, 0,
-                            origin.getWidth(), origin.getHeight(), matrix, true);
-                    origin.recycle();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            cameraPreview.applyPicture(rotatedBitmap);
-                        }
-                    });
-
-                }
-
-                @Override
-                public void onServerConnected() {
-                    cameraPreview.setOnFrameChangeListener(new CameraSurfaceView.OnFrameChangeListener() {
-                        @Override
-                        public void onFrameChange(byte[] mas) {
-                            chatService.sendMessage(mas);
-                        }
-                    });
-                }
-            });
-            startService(new Intent(ChatService.START_CHAT));
-
-
+            chatService.setOnMessageReceive(onMessageReceive);
+            Intent start = new Intent(MyActivity.this, BinaryChatService.class);
+            start.setAction(BinaryChatService.START_CHAT);
+            startService(start);
         }
 
         @Override
@@ -120,6 +103,83 @@ public class MyActivity extends FragmentActivity {
             chatService.setOnMessageReceive(null);
         }
 
+    };
+
+    public byte[] longToBytes(long x) {
+        ByteBuffer buffer = ByteBuffer.allocate(8);
+        buffer.putLong(x);
+        return buffer.array();
+    }
+
+    public long bytesToLong(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.allocate(8);
+        buffer.put(bytes);
+        buffer.flip();//need flip
+        return buffer.getLong();
+    }
+
+
+    BinaryChatService.OnBinaryMessageReceive onMessageReceive = new BinaryChatService.OnBinaryMessageReceive() {
+        @Override
+        public void onMessage(final byte[] data) {
+            final byte flag = data[data.length - 1];
+            long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
+
+            if (System.currentTimeMillis() - timestamp > 500) {
+                Log.w("BinaryChatService", "time is up so skip");
+                return;
+            }
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    byte[] originalBytes = Arrays.copyOfRange(data, 0, data.length - 1);
+                    Matrix matrix = new Matrix();
+                    matrix.postRotate(90);
+                    final Bitmap origin = BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.length);
+                    final Bitmap rotatedBitmap = Bitmap.createBitmap(origin, 0, 0,
+                            origin.getWidth(), origin.getHeight(), matrix, true);
+                    origin.recycle();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            switch (flag) {
+                                case 0:
+                                    videoFrame1.setImageBitmap(rotatedBitmap);
+                                    break;
+                                case 1:
+                                    videoFrame2.setImageBitmap(rotatedBitmap);
+                                    break;
+                                case 2:
+                                    videoFrame3.setImageBitmap(rotatedBitmap);
+                                    break;
+                                case 3:
+                                    videoFrame4.setImageBitmap(rotatedBitmap);
+                                    break;
+                            }
+                        }
+                    });
+                }
+            }).start();
+
+
+        }
+
+        @Override
+        public void onServerConnected() {
+            cameraPreview.setOnFrameChangeListener(new CameraSurfaceView.OnFrameChangeListener() {
+                @Override
+                public void onFrameChange(byte[] mas) {
+                    byte[] dataBytes = Arrays.copyOf(mas, mas.length + 9);
+                    dataBytes[dataBytes.length - 1] = PHONE_ID;
+                    byte[] timestamp = longToBytes(System.currentTimeMillis());
+                    for (int i = 0; i < 8; i++) {
+                        dataBytes[dataBytes.length - 9 + i] = timestamp[i];
+                    }
+                    chatService.sendMessage(dataBytes);
+                }
+            });
+        }
     };
 
 
@@ -137,6 +197,45 @@ public class MyActivity extends FragmentActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+
+    public Dialog onCreateDialogSingleChoice() {
+
+        //Initialize the Alert Dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        //Source of the data in the DIalog
+        CharSequence[] array = {"1 frame", "2 frame", "3 frame", "4 frame"};
+
+        // Set the dialog title
+        builder.setTitle("Select frame")
+                // Specify the list array, the items to be selected by default (null for none),
+                // and the listener through which to receive callbacks when items are selected
+                .setSingleChoiceItems(array, 1, new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        PHONE_ID = (byte) which;
+                    }
+                })
+
+                        // Set the action buttons
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        Intent intent = new Intent(MyActivity.this, BinaryChatService.class);
+                        bindService(intent, myConnection, Context.BIND_AUTO_CREATE);
+
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        finish();
+                    }
+                });
+
+        return builder.create();
     }
 
 
