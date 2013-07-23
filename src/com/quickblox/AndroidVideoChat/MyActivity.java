@@ -127,7 +127,7 @@ public class MyActivity extends FragmentActivity {
 
             if (System.currentTimeMillis() - timestamp > 500) {
                 Log.w("BinaryChatService", "time is up so skip");
-                return;
+                //return;
             }
 
             new Thread(new Runnable() {
