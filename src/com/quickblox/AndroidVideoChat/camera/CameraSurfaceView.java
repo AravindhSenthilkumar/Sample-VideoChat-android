@@ -58,7 +58,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
-        camera = Camera.open();
+        camera = Camera.open(0);
         try {
             camera.setPreviewDisplay(holder);
             camera.setDisplayOrientation(90);
@@ -79,7 +79,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                                 Rect rect = new Rect(0, 0, parameters.getPreviewSize().width, parameters.getPreviewSize().height);
                                 YuvImage img = new YuvImage(data, ImageFormat.NV21, parameters.getPreviewSize().width, parameters.getPreviewSize().height, null);
                                 ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-                                img.compressToJpeg(rect,10, outStream);
+                                img.compressToJpeg(rect,50, outStream);
                                 out = outStream.toByteArray();
                             }
                             if (onFrameChangeListener != null) {
@@ -117,7 +117,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 
 
         List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
-        Camera.Size cs = sizes.get(0);
+        Camera.Size cs = sizes.get(0);//sizes.size()-1);
         parameters.setPreviewSize(cs.width, cs.height);
         parameters.setPreviewFrameRate(15);
 //        parameters.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);

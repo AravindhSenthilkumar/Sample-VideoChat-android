@@ -14,25 +14,34 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.v4.app.FragmentActivity;
+import android.text.InputType;
 import android.util.Log;
 import android.view.*;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import com.quickblox.AndroidVideoChat.camera.CameraSurfaceView;
+import com.quickblox.AndroidVideoChat.websockets.BinaryChatServerService;
 import com.quickblox.AndroidVideoChat.websockets.BinaryChatService;
 import com.quickblox.AndroidVideoChat.websockets.ChatService;
+import com.quickblox.AndroidVideoChat.websockets.OnBinaryMessageReceive;
+import org.apache.http.conn.util.InetAddressUtils;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class MyActivity extends FragmentActivity {
 
 
     private static final String TAG = MyActivity.class.getName();
     private CameraSurfaceView cameraPreview;
-    private ImageView videoFrame1;
-    private ImageView videoFrame2;
-    private ImageView videoFrame3;
-    private ImageView videoFrame4;
+    private ImageView videoFrame;
+    private TextView addr;
+
 
     private AudioTrack speaker;
     private AudioRecord recorder;
@@ -58,43 +67,70 @@ public class MyActivity extends FragmentActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main);
-        onCreateDialogSingleChoice().show();
+
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        videoFrame1 = (ImageView) findViewById(R.id.chatFrame1);
-        videoFrame2 = (ImageView) findViewById(R.id.chatFrame2);
-        videoFrame3 = (ImageView) findViewById(R.id.chatFrame3);
-        videoFrame4 = (ImageView) findViewById(R.id.chatFrame4);
+        videoFrame = (ImageView) findViewById(R.id.chatFrame);
+        addr = (TextView) findViewById(R.id.serverAdr);
+
         cameraPreview = (CameraSurfaceView) findViewById(R.id.camera_preview);
 
 
         addContentView(cameraPreview.getDrawOnTop(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        onCreateDialogSingleChoice().show();
+
     }
 
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        startService(new Intent(ChatService.STOP_CHAT));
+        startService(new Intent(BinaryChatService.STOP_CHAT));
     }
 
 
     private boolean isBound;
-    private BinaryChatService chatService;
+    private ChatService chatService;
 
 
-    private ServiceConnection myConnection = new ServiceConnection() {
+    private ServiceConnection myClientConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
-            Log.d(TAG, "Service connected");
+            Log.d(TAG, "СlientService connected");
             BinaryChatService.MyLocalBinder binder = (BinaryChatService.MyLocalBinder) service;
             chatService = binder.getService();
             isBound = true;
             chatService.setOnMessageReceive(onMessageReceive);
             Intent start = new Intent(MyActivity.this, BinaryChatService.class);
-            start.setAction(BinaryChatService.START_CHAT);
+            start.setAction(ChatService.START_CHAT);
             startService(start);
+            addr.setText(getIPAddress(true) + "");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            isBound = false;
+            chatService.setOnMessageReceive(null);
+        }
+
+    };
+
+    private ServiceConnection myServerConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            Log.d(TAG, "ServerService connected");
+            BinaryChatServerService.MyLocalBinder binder = (BinaryChatServerService.MyLocalBinder) service;
+            chatService = binder.getService();
+            isBound = true;
+            chatService.setOnMessageReceive(onMessageReceive);
+            Intent start = new Intent(MyActivity.this, BinaryChatServerService.class);
+            start.setAction(BinaryChatServerService.START_SERVER);
+            startService(start);
+            addr.setText(getIPAddress(true));
         }
 
         @Override
@@ -119,17 +155,18 @@ public class MyActivity extends FragmentActivity {
     }
 
 
-    BinaryChatService.OnBinaryMessageReceive onMessageReceive = new BinaryChatService.OnBinaryMessageReceive() {
+    OnBinaryMessageReceive onMessageReceive = new OnBinaryMessageReceive() {
         @Override
         public void onMessage(final byte[] data) {
             final byte flag = data[data.length - 1];
             long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
 
-            if (System.currentTimeMillis() - timestamp > 500) {
-                Log.w("BinaryChatService", "time is up so skip");
-                //return;
-            }
+//            if (System.currentTimeMillis() - timestamp > 500) {
+//                Log.w("BinaryChatService", "time is up so skip");
+//                return;
+//            }
 
+            if(false)
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -143,20 +180,7 @@ public class MyActivity extends FragmentActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            switch (flag) {
-                                case 0:
-                                    videoFrame1.setImageBitmap(rotatedBitmap);
-                                    break;
-                                case 1:
-                                    videoFrame2.setImageBitmap(rotatedBitmap);
-                                    break;
-                                case 2:
-                                    videoFrame3.setImageBitmap(rotatedBitmap);
-                                    break;
-                                case 3:
-                                    videoFrame4.setImageBitmap(rotatedBitmap);
-                                    break;
-                            }
+                            videoFrame.setImageBitmap(rotatedBitmap);
                         }
                     });
                 }
@@ -191,11 +215,11 @@ public class MyActivity extends FragmentActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.quit) {
-            startService(new Intent(ChatService.STOP_CHAT));
-            finish();
-            return true;
-        }
+//        if (item.getItemId() == R.id.quit) {
+//            startService(new Intent(BinaryChatServerService.STOP_CHAT));
+//            finish();
+//            return true;
+//        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -205,33 +229,34 @@ public class MyActivity extends FragmentActivity {
         //Initialize the Alert Dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         //Source of the data in the DIalog
-        CharSequence[] array = {"1 frame", "2 frame", "3 frame", "4 frame"};
 
+        final EditText input = new EditText(this);
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        input.setInputType(InputType.TYPE_CLASS_PHONE);
+        input.setText("192.168.0.");
         // Set the dialog title
-        builder.setTitle("Select frame")
+        builder.setTitle("Select mode")
                 // Specify the list array, the items to be selected by default (null for none),
                 // and the listener through which to receive callbacks when items are selected
-                .setSingleChoiceItems(array, 1, new DialogInterface.OnClickListener() {
 
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        PHONE_ID = (byte) which;
-                    }
-                })
+                // Set the action buttons
+                // Set up the input
 
-                        // Set the action buttons
-                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                .setView(input)
+                .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
                         Intent intent = new Intent(MyActivity.this, BinaryChatService.class);
-                        bindService(intent, myConnection, Context.BIND_AUTO_CREATE);
+                        intent.putExtra("server", input.getText().toString());
+                        bindService(intent, myClientConnection, Context.BIND_AUTO_CREATE);
 
                     }
                 })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                .setNegativeButton("Create server", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-                        finish();
+                        Intent intent = new Intent(MyActivity.this, BinaryChatServerService.class);
+                        bindService(intent, myServerConnection, Context.BIND_AUTO_CREATE);
                     }
                 });
 
@@ -239,4 +264,33 @@ public class MyActivity extends FragmentActivity {
     }
 
 
+    public static String getIPAddress(boolean useIPv4) {
+        try {
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface intf : interfaces) {
+                List<InetAddress> addrs = Collections.list(intf.getInetAddresses());
+                for (InetAddress addr : addrs) {
+                    if (!addr.isLoopbackAddress()) {
+                        String sAddr = addr.getHostAddress().toUpperCase();
+                        boolean isIPv4 = InetAddressUtils.isIPv4Address(sAddr);
+                        if (useIPv4) {
+                            if (isIPv4)
+                                return sAddr;
+                        } else {
+                            if (!isIPv4) {
+                                int delim = sAddr.indexOf('%'); // drop ip6 port suffix
+                                return delim < 0 ? sAddr : sAddr.substring(0, delim);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            Log.e(TAG, "error", ex);
+        } // for now eat exceptions
+        return "";
+    }
 }
+
+
+
