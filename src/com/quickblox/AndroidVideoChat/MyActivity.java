@@ -160,7 +160,7 @@ public class MyActivity extends FragmentActivity {
             long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
 
             if (System.currentTimeMillis() - timestamp > 1000) {
-                Log.w("BinaryChatService", "time is up so skip");
+                Log.w("BinaryChatService", "time is up so skip diff="+(System.currentTimeMillis() - timestamp));
                 return;
             }
 

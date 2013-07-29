@@ -16,6 +16,7 @@
     <orderEntry type="library" name="android-support-v4" level="project" />
     <orderEntry type="library" name="androidwebsockets" level="project" />
     <orderEntry type="module" module-name="android-websockets" />
+    <orderEntry type="library" name="java_websocket" level="project" />
   </component>
 </module>
 
