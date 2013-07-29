@@ -10,13 +10,16 @@ package com.quickblox.AndroidVideoChat.websockets;
 
 import android.util.Log;
 import org.java_websocket.WebSocket;
+import org.java_websocket.drafts.Draft;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A simple WebSocketServer implementation. Keeps track of a "chatroom".
@@ -45,6 +48,9 @@ public class VideoChatServer extends WebSocketServer {
         super(address);
     }
 
+    public VideoChatServer(InetSocketAddress inetSocketAddress, List<Draft> drafts) {
+        super(inetSocketAddress, drafts);
+    }
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
@@ -62,21 +68,7 @@ public class VideoChatServer extends WebSocketServer {
     @Override
     public void onMessage(WebSocket conn, String message) {
         // this.sendToAll(message);
-    }
-
-
-    @Override
-    public void onMessage(WebSocket conn, ByteBuffer message) {
-//        byte[] data = message.array();
-//        long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
-//        //Log.d(TAG,"time is " + timestamp+ " cut time is "+System.currentTimeMillis());
-//        long diff;
-//        if ((diff = System.currentTimeMillis() - timestamp) > 5000) {
-//            //Log.d(TAG,"time is up so skip " + diff);
-//            return;
-//        }
-
-        byte[] bytes = message.array();
+        byte[] bytes = message.getBytes();
         count++;
 
         if (onMessageReceive != null) {
@@ -89,8 +81,36 @@ public class VideoChatServer extends WebSocketServer {
             count = 0;
             lastTime = System.currentTimeMillis();
         }
-        onMessageReceive.onMessage(message.array());
-        //this.sendToAll(message);
+        onMessageReceive.onMessage(bytes);
+    }
+
+
+    @Override
+    public void onMessage(WebSocket conn, ByteBuffer message) {
+        byte[] data = message.array();
+        long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
+        //Log.d(TAG,"time is " + timestamp+ " cut time is "+System.currentTimeMillis());
+        long diff;
+        if ((diff = System.currentTimeMillis() - timestamp) > 5000) {
+            Log.d(TAG,"time is up so skip " + diff);
+            return;
+        }
+
+        byte[] bytes = message.array();
+        count++;
+
+        if (onMessageReceive != null) {
+            if (bytes.length > 0)
+                onMessageReceive.onMessage(bytes);
+        }
+
+        if (System.currentTimeMillis() - lastTime > 1000) {
+            Log.w(TAG, "mps=" + (count) + " data size =" + bytes.length);
+            count = 0;
+            lastTime = System.currentTimeMillis();
+        }
+        onMessageReceive.onMessage(bytes);
+
     }
 
 

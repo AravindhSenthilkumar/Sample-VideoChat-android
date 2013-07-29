@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import org.java_websocket.drafts.Draft;
+import org.java_websocket.drafts.Draft_10;
 
 import java.net.URI;
 import java.util.Timer;
@@ -34,6 +36,7 @@ public class BinaryChatService extends Service implements ChatService{
         super.onCreate();
     }
 
+    Draft draft = new Draft_10();
 
     private final IBinder myBinder = new MyLocalBinder();
 
@@ -46,7 +49,7 @@ public class BinaryChatService extends Service implements ChatService{
             ADDR = ADDR.replace("%server%", "127.0.0.1");
         }
         Log.d(LOGTAG, "server = " + ADDR);
-        client = new VideoChatClient(URI.create(ADDR));
+        client = new VideoChatClient(URI.create(ADDR),draft);
 
         return myBinder;
     }

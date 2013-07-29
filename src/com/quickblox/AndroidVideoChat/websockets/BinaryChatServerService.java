@@ -5,9 +5,12 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import org.java_websocket.drafts.Draft;
+import org.java_websocket.drafts.Draft_10;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 
 /**
  * Created with IntelliJ IDEA.
@@ -32,13 +35,14 @@ public class BinaryChatServerService extends Service implements ChatService{
         super.onCreate();
     }
 
+    Draft draft = new Draft_10();
 
     private final IBinder myBinder = new MyLocalBinder();
 
     @Override
     public IBinder onBind(Intent intent) {
 
-        server = new VideoChatServer(new InetSocketAddress(8887));
+        server = new VideoChatServer(new InetSocketAddress(8887), Arrays.asList(draft));
         return myBinder;
     }
 
@@ -62,7 +66,7 @@ public class BinaryChatServerService extends Service implements ChatService{
             }
             Log.i(LOGTAG, "start server");
             chatActivated = true;
-        } else if (intent.getAction().equals(STOP_CHAT)) {
+        } else if (intent.getAction().equals(STOP_SERVER)) {
             Log.i(LOGTAG, "stop chat");
             chatActivated = false;
 

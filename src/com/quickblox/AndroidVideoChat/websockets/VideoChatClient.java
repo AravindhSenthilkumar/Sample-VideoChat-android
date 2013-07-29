@@ -2,6 +2,7 @@ package com.quickblox.AndroidVideoChat.websockets;
 
 import android.util.Log;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
@@ -21,6 +22,10 @@ public class VideoChatClient extends WebSocketClient {
 
     public VideoChatClient(URI serverURI) {
         super(serverURI);
+    }
+
+    public VideoChatClient(URI uri, Draft draft) {
+        super(uri, draft);
     }
 
     public OnBinaryMessageReceive getOnMessageReceive() {
@@ -59,7 +64,7 @@ public class VideoChatClient extends WebSocketClient {
         }
 
         if (System.currentTimeMillis() - lastTime > 1000) {
-            Log.w(LOGTAG, "mps=" + count  + " data size =" + data.array().length);
+            Log.w(LOGTAG, "mps=" + count + " data size =" + data.array().length);
             count = 0;
             lastTime = System.currentTimeMillis();
         }

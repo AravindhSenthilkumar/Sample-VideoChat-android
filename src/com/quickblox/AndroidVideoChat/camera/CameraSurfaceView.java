@@ -1,16 +1,17 @@
 package com.quickblox.AndroidVideoChat.camera;
 
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.hardware.Camera;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Toast;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -57,8 +58,36 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         this.onFrameChangeListener = onFrameChangeListener;
     }
 
+    private int findFrontFacingCamera() {
+        int cameraId = -1;
+        // Search for the front facing camera
+        try {
+            int numberOfCameras = Camera.getNumberOfCameras();
+            for (int i = 0; i < numberOfCameras; i++) {
+                Camera.CameraInfo info = new Camera.CameraInfo();
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    Log.d(TAG, "Camera found");
+                    cameraId = i;
+                    break;
+                }
+            }
+        } catch (Throwable e) {
+            Log.e(TAG, "error", e);
+        }
+        return cameraId;
+    }
+
     public void surfaceCreated(SurfaceHolder holder) {
-        camera = Camera.open(0);
+        int cameraId = findFrontFacingCamera();
+        if (cameraId < 0) {
+            Toast.makeText(getContext(), "No front facing camera found.",
+                    Toast.LENGTH_LONG).show();
+            camera = Camera.open();
+        } else {
+            camera = Camera.open(cameraId);
+        }
+
         try {
             camera.setPreviewDisplay(holder);
             camera.setDisplayOrientation(90);
@@ -69,26 +98,25 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                     if ((drawOnTop == null) || isFinished)
                         return;
 
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            byte[] out = null;
-                            Camera.Parameters parameters = camera.getParameters();
-                            int imageFormat = parameters.getPreviewFormat();
-                            if (imageFormat == ImageFormat.NV21) {
-                                Rect rect = new Rect(0, 0, parameters.getPreviewSize().width, parameters.getPreviewSize().height);
-                                YuvImage img = new YuvImage(data, ImageFormat.NV21, parameters.getPreviewSize().width, parameters.getPreviewSize().height, null);
-                                ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-                                img.compressToJpeg(rect,50, outStream);
-                                out = outStream.toByteArray();
-                            }
-                            if (onFrameChangeListener != null) {
 
-                                onFrameChangeListener.onFrameChange(out);
-                                //onFrameChangeListener.onFrameChange(new byte[1000]);
-                            }
-                        }
-                    }).start();
+                    byte[] out = null;
+                    Camera.Parameters parameters = camera.getParameters();
+                    int imageFormat = parameters.getPreviewFormat();
+
+//                    if (imageFormat == ImageFormat.NV21) {
+//                        Rect rect = new Rect(0, 0, parameters.getPreviewSize().width, parameters.getPreviewSize().height);
+//                        YuvImage img = new YuvImage(data, ImageFormat.NV21, parameters.getPreviewSize().width, parameters.getPreviewSize().height, null);
+//                        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+//                        img.compressToJpeg(rect, 10, outStream);
+//                        out = outStream.toByteArray();
+//                    }
+                    out = data;
+                    Log.d(TAG, "frame size= " + out.length);
+                    if (onFrameChangeListener != null) {
+                        onFrameChangeListener.onFrameChange(out);
+//                        onFrameChangeListener.onFrameChange(new byte[1000]);
+                    }
+
 
                 }
             });
@@ -114,18 +142,22 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         // Now that the size is known, set up the camera parameters and begin
         // the preview.
         Camera.Parameters parameters = camera.getParameters();
-
-
-        List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
-        Camera.Size cs = sizes.get(0);//sizes.size()-1);
-        parameters.setPreviewSize(cs.width, cs.height);
+        setMinPreviewSize(parameters);
         parameters.setPreviewFrameRate(15);
 //        parameters.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
 //        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
         camera.setParameters(parameters);
         camera.startPreview();
+    }
 
-
+    void setMinPreviewSize(Camera.Parameters parameters) {
+//        List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
+//        if (sizes.get(0).width < sizes.get(sizes.size() - 1).width) {
+//            parameters.setPreviewSize(sizes.get(0).width, sizes.get(0).height);
+//        } else {
+//            parameters.setPreviewSize(sizes.get(sizes.size() - 1).width, sizes.get(sizes.size() - 1).height);
+//        }
+        parameters.setPreviewSize(176,144);
     }
 
 

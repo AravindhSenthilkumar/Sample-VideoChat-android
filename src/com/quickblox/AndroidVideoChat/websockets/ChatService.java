@@ -12,6 +12,7 @@ public interface  ChatService {
     public final static String START_CHAT = "com.example.WebSocketsSimpleChat.START_CHAT";
     public final static String START_SERVER = "com.example.WebSocketsSimpleChat.START_SERVER";
     public final static String STOP_CHAT = "com.example.WebSocketsSimpleChat.STOP_CHAT";
+    public final static String STOP_SERVER = "com.example.WebSocketsSimpleChat.STOP_SERVER";
     public final static String SEND_MESSAGE = "com.example.WebSocketsSimpleChat.SEND_MESSAGE";
 
     void setOnMessageReceive(OnBinaryMessageReceive onMessageReceive);
