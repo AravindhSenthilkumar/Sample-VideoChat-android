@@ -18,7 +18,7 @@ import java.util.Timer;
  * Time: 2:42 PM
  * To change this template use File | Settings | File Templates.
  */
-public class BinaryChatService extends Service implements ChatService{
+public class BinaryChatService extends Service implements ChatService {
 
 
     private static final String LOGTAG = BinaryChatServerService.class.getName();
@@ -49,7 +49,7 @@ public class BinaryChatService extends Service implements ChatService{
             ADDR = ADDR.replace("%server%", "127.0.0.1");
         }
         Log.d(LOGTAG, "server = " + ADDR);
-        client = new VideoChatClient(URI.create(ADDR),draft);
+        client = new VideoChatClient(URI.create(ADDR));//,draft);
 
         return myBinder;
     }

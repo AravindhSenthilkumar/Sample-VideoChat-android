@@ -1,8 +1,7 @@
 package com.quickblox.AndroidVideoChat.camera;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
+import android.graphics.*;
 import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -11,6 +10,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
@@ -103,14 +103,14 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                     Camera.Parameters parameters = camera.getParameters();
                     int imageFormat = parameters.getPreviewFormat();
 
-//                    if (imageFormat == ImageFormat.NV21) {
-//                        Rect rect = new Rect(0, 0, parameters.getPreviewSize().width, parameters.getPreviewSize().height);
-//                        YuvImage img = new YuvImage(data, ImageFormat.NV21, parameters.getPreviewSize().width, parameters.getPreviewSize().height, null);
-//                        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-//                        img.compressToJpeg(rect, 10, outStream);
-//                        out = outStream.toByteArray();
-//                    }
-                    out = data;
+                    if (imageFormat == ImageFormat.NV21) {
+                        Rect rect = new Rect(0, 0, parameters.getPreviewSize().width, parameters.getPreviewSize().height);
+                        YuvImage img = new YuvImage(data, ImageFormat.NV21, parameters.getPreviewSize().width, parameters.getPreviewSize().height, null);
+                        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+                        img.compressToJpeg(rect, 50, outStream);
+                        out = outStream.toByteArray();
+                    }
+
                     Log.d(TAG, "frame size= " + out.length);
                     if (onFrameChangeListener != null) {
                         onFrameChangeListener.onFrameChange(out);

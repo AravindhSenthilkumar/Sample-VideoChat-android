@@ -4,6 +4,9 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.*;
 import android.content.pm.ActivityInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
@@ -159,24 +162,24 @@ public class MyActivity extends FragmentActivity {
             final byte flag = data[data.length - 1];
             long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
 
-            if (System.currentTimeMillis() - timestamp > 1000) {
-                Log.w("BinaryChatService", "time is up so skip diff="+(System.currentTimeMillis() - timestamp));
+            if (System.currentTimeMillis() - timestamp > 500) {
+                Log.w("BinaryChatService", "time is up so skip diff=" + (System.currentTimeMillis() - timestamp));
                 return;
             }
 
 
-//            byte[] originalBytes = Arrays.copyOfRange(data, 0, data.length - 1);
-//            Matrix matrix = new Matrix();
-//            matrix.postRotate(90);
-//            final Bitmap origin = BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.length);
-//            if (origin == null) return;
+            byte[] originalBytes = Arrays.copyOfRange(data, 0, data.length - 1);
+            Matrix matrix = new Matrix();
+            matrix.postRotate(90);
+            final Bitmap origin = BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.length);
+            if (origin == null) return;
 //            final Bitmap rotatedBitmap = Bitmap.createBitmap(origin, 0, 0,
 //                    origin.getWidth(), origin.getHeight(), matrix, true);
 //            origin.recycle();
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                   // videoFrame.setImageBitmap(rotatedBitmap);
+                    videoFrame.setImageBitmap(origin);
                 }
             });
 

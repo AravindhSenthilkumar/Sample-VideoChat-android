@@ -10,7 +10,6 @@ import org.java_websocket.drafts.Draft_10;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 
 /**
  * Created with IntelliJ IDEA.
@@ -42,7 +41,7 @@ public class BinaryChatServerService extends Service implements ChatService{
     @Override
     public IBinder onBind(Intent intent) {
 
-        server = new VideoChatServer(new InetSocketAddress(8887), Arrays.asList(draft));
+        server = new VideoChatServer(new InetSocketAddress(8887));//, Arrays.asList(draft));
         return myBinder;
     }
 
