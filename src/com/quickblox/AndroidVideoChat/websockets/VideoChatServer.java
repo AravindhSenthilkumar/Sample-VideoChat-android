@@ -91,7 +91,7 @@ public class VideoChatServer extends WebSocketServer {
         long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
         //Log.d(TAG,"time is " + timestamp+ " cut time is "+System.currentTimeMillis());
         long diff;
-        if ((diff = System.currentTimeMillis() - timestamp) > 5000) {
+        if ((diff = System.currentTimeMillis() - timestamp) > 500) {
             Log.d(TAG,"time is up so skip " + diff);
             return;
         }

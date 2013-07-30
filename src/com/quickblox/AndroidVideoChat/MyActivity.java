@@ -8,7 +8,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.AudioFormat;
-import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -20,6 +19,8 @@ import android.view.*;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import com.quickblox.AndroidVideoChat.camera.AudioRecorder;
+import com.quickblox.AndroidVideoChat.camera.AudioRecorderListener;
 import com.quickblox.AndroidVideoChat.camera.CameraSurfaceView;
 import com.quickblox.AndroidVideoChat.websockets.BinaryChatServerService;
 import com.quickblox.AndroidVideoChat.websockets.BinaryChatService;
@@ -42,9 +43,10 @@ public class MyActivity extends FragmentActivity {
     private ImageView videoFrame;
     private TextView addr;
 
+    public final static int VIDEO_FRAME = 0;
+    public final static int AUDIO_FRAME = 1;
 
-    private AudioTrack speaker;
-    private AudioRecord recorder;
+    private AudioRecorder recorder;
 
     public static byte PHONE_ID = 0;
 
@@ -73,9 +75,9 @@ public class MyActivity extends FragmentActivity {
 
         videoFrame = (ImageView) findViewById(R.id.chatFrame);
         addr = (TextView) findViewById(R.id.serverAdr);
+        recorder = new AudioRecorder();
 
         cameraPreview = (CameraSurfaceView) findViewById(R.id.camera_preview);
-
 
         addContentView(cameraPreview.getDrawOnTop(), new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -161,27 +163,28 @@ public class MyActivity extends FragmentActivity {
         public void onMessage(final byte[] data) {
             final byte flag = data[data.length - 1];
             long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
-
+            byte[] originalBytes = Arrays.copyOfRange(data, 0, data.length - 1);
             if (System.currentTimeMillis() - timestamp > 500) {
                 Log.w("BinaryChatService", "time is up so skip diff=" + (System.currentTimeMillis() - timestamp));
                 return;
             }
-
-
-            byte[] originalBytes = Arrays.copyOfRange(data, 0, data.length - 1);
-            Matrix matrix = new Matrix();
-            matrix.postRotate(90);
-            final Bitmap origin = BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.length);
-            if (origin == null) return;
+            if (flag == VIDEO_FRAME) {
+                Matrix matrix = new Matrix();
+                matrix.postRotate(90);
+                final Bitmap origin = BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.length);
+                if (origin == null) return;
 //            final Bitmap rotatedBitmap = Bitmap.createBitmap(origin, 0, 0,
 //                    origin.getWidth(), origin.getHeight(), matrix, true);
 //            origin.recycle();
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    videoFrame.setImageBitmap(origin);
-                }
-            });
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        videoFrame.setImageBitmap(origin);
+                    }
+                });
+            } else {
+                recorder.playAudio(originalBytes);
+            }
 
 
         }
@@ -192,7 +195,19 @@ public class MyActivity extends FragmentActivity {
                 @Override
                 public void onFrameChange(byte[] mas) {
                     byte[] dataBytes = Arrays.copyOf(mas, mas.length + 9);
-                    dataBytes[dataBytes.length - 1] = PHONE_ID;
+                    dataBytes[dataBytes.length - 1] = VIDEO_FRAME;
+                    byte[] timestamp = longToBytes(System.currentTimeMillis());
+                    for (int i = 0; i < 8; i++) {
+                        dataBytes[dataBytes.length - 9 + i] = timestamp[i];
+                    }
+                    chatService.sendMessage(dataBytes);
+                }
+            });
+            recorder.setAudioListenCallBack(new AudioRecorderListener() {
+                @Override
+                public void onReceiveAudio(byte[] audioData) {
+                    byte[] dataBytes = Arrays.copyOf(audioData, audioData.length + 9);
+                    dataBytes[dataBytes.length - 1] = VIDEO_FRAME;
                     byte[] timestamp = longToBytes(System.currentTimeMillis());
                     for (int i = 0; i < 8; i++) {
                         dataBytes[dataBytes.length - 9 + i] = timestamp[i];
