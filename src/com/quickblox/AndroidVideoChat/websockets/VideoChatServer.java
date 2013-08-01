@@ -17,7 +17,6 @@ import org.java_websocket.server.WebSocketServer;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -86,46 +85,36 @@ public class VideoChatServer extends WebSocketServer {
 
 
     @Override
-    public void onMessage(WebSocket conn, ByteBuffer message) {
-        byte[] data = message.array();
-        long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
-        //Log.d(TAG,"time is " + timestamp+ " cut time is "+System.currentTimeMillis());
-        long diff;
-        if ((diff = System.currentTimeMillis() - timestamp) > 500) {
-            Log.d(TAG,"time is up so skip " + diff);
-            return;
-        }
+    public void onMessage(WebSocket conn, ByteBuffer data) {
 
-        byte[] bytes = message.array();
         count++;
 
-        if (onMessageReceive != null) {
-            if (bytes.length > 0)
-                onMessageReceive.onMessage(bytes);
-        }
-
         if (System.currentTimeMillis() - lastTime > 1000) {
-            Log.w(TAG, "mps=" + (count) + " data size =" + bytes.length);
+            Log.w(TAG, "mps=" + count + " data size =" + data.array().length);
             count = 0;
             lastTime = System.currentTimeMillis();
         }
-        onMessageReceive.onMessage(bytes);
 
+        if (onMessageReceive != null) {
+            byte[] bytes = data.array();
+            if (bytes.length > 0)
+                onMessageReceive.onMessage(bytes);
+        }
     }
 
 
-    public byte[] longToBytes(long x) {
-        ByteBuffer buffer = ByteBuffer.allocate(8);
-        buffer.putLong(x);
-        return buffer.array();
-    }
-
-    public long bytesToLong(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.allocate(8);
-        buffer.put(bytes);
-        buffer.flip();//need flip
-        return buffer.getLong();
-    }
+//    public byte[] longToBytes(long x) {
+//        ByteBuffer buffer = ByteBuffer.allocate(8);
+//        buffer.putLong(x);
+//        return buffer.array();
+//    }
+//
+//    public long bytesToLong(byte[] bytes) {
+//        ByteBuffer buffer = ByteBuffer.allocate(8);
+//        buffer.put(bytes);
+//        buffer.flip();//need flip
+//        return buffer.getLong();
+//    }
 
 
     @Override

@@ -111,7 +111,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                         out = outStream.toByteArray();
                     }
 
-                    Log.d(TAG, "frame size= " + out.length);
+                    //Log.d(TAG, "frame size= " + out.length);
                     if (onFrameChangeListener != null) {
                         onFrameChangeListener.onFrameChange(out);
 //                        onFrameChangeListener.onFrameChange(new byte[1000]);
@@ -157,7 +157,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
 //        } else {
 //            parameters.setPreviewSize(sizes.get(sizes.size() - 1).width, sizes.get(sizes.size() - 1).height);
 //        }
-        parameters.setPreviewSize(176,144);
+     parameters.setPreviewSize(176,144);
     }
 
 

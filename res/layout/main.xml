@@ -9,7 +9,6 @@
         <ImageView
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
-                android:background="@android:color/white"
                 android:layout_margin="30dp"
                 android:id="@+id/chatFrame"/>
     <com.quickblox.AndroidVideoChat.camera.CameraSurfaceView

@@ -56,6 +56,12 @@ public class VideoChatClient extends WebSocketClient {
 
         count++;
 
+        if (System.currentTimeMillis() - lastTime > 1000) {
+            Log.w(LOGTAG, "mps=" + count + " data size =" + data.array().length);
+            count = 0;
+            lastTime = System.currentTimeMillis();
+        }
+
         if (onMessageReceive != null) {
             byte[] bytes = data.array();
             if (bytes.length > 0)
@@ -63,11 +69,7 @@ public class VideoChatClient extends WebSocketClient {
 
         }
 
-        if (System.currentTimeMillis() - lastTime > 1000) {
-            Log.w(LOGTAG, "mps=" + count + " data size =" + data.array().length);
-            count = 0;
-            lastTime = System.currentTimeMillis();
-        }
+
     }
 
     @Override

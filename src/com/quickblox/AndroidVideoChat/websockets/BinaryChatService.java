@@ -49,7 +49,10 @@ public class BinaryChatService extends Service implements ChatService {
             ADDR = ADDR.replace("%server%", "127.0.0.1");
         }
         Log.d(LOGTAG, "server = " + ADDR);
+
         client = new VideoChatClient(URI.create(ADDR));//,draft);
+
+
 
         return myBinder;
     }

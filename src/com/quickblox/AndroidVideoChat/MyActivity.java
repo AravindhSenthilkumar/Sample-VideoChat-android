@@ -6,7 +6,6 @@ import android.content.*;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
 import android.os.Bundle;
@@ -108,7 +107,7 @@ public class MyActivity extends FragmentActivity {
             Intent start = new Intent(MyActivity.this, BinaryChatService.class);
             start.setAction(ChatService.START_CHAT);
             startService(start);
-            addr.setText(getIPAddress(true) + "");
+            addr.setText(getIPAddress(true)+ "->client");
         }
 
         @Override
@@ -116,6 +115,7 @@ public class MyActivity extends FragmentActivity {
             isBound = false;
             chatService.setOnMessageReceive(null);
             startService(new Intent(BinaryChatService.STOP_CHAT));
+            recorder.stopAudiRecorder();
         }
 
     };
@@ -132,7 +132,7 @@ public class MyActivity extends FragmentActivity {
             Intent start = new Intent(MyActivity.this, BinaryChatServerService.class);
             start.setAction(BinaryChatServerService.START_SERVER);
             startService(start);
-            addr.setText(getIPAddress(true));
+            addr.setText(getIPAddress(true)+ "->server");
         }
 
         @Override
@@ -140,6 +140,7 @@ public class MyActivity extends FragmentActivity {
             isBound = false;
             chatService.setOnMessageReceive(null);
             startService(new Intent(BinaryChatService.STOP_SERVER));
+            recorder.stopAudiRecorder();
         }
 
     };
@@ -163,14 +164,14 @@ public class MyActivity extends FragmentActivity {
         public void onMessage(final byte[] data) {
             final byte flag = data[data.length - 1];
             long timestamp = bytesToLong(Arrays.copyOfRange(data, data.length - 9, data.length - 1));
-            byte[] originalBytes = Arrays.copyOfRange(data, 0, data.length - 1);
-            if (System.currentTimeMillis() - timestamp > 500) {
-                Log.w("BinaryChatService", "time is up so skip diff=" + (System.currentTimeMillis() - timestamp));
+            byte[] originalBytes = Arrays.copyOfRange(data, 0, data.length - 9);
+            if (System.currentTimeMillis() - timestamp > 1000) {
+                Log.w("MyActivity", "time is up so skip diff=" + (System.currentTimeMillis() - timestamp));
                 return;
             }
             if (flag == VIDEO_FRAME) {
-                Matrix matrix = new Matrix();
-                matrix.postRotate(90);
+//                Matrix matrix = new Matrix();
+//                matrix.postRotate(90);
                 final Bitmap origin = BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.length);
                 if (origin == null) return;
 //            final Bitmap rotatedBitmap = Bitmap.createBitmap(origin, 0, 0,
@@ -183,6 +184,7 @@ public class MyActivity extends FragmentActivity {
                     }
                 });
             } else {
+
                 recorder.playAudio(originalBytes);
             }
 
@@ -207,7 +209,7 @@ public class MyActivity extends FragmentActivity {
                 @Override
                 public void onReceiveAudio(byte[] audioData) {
                     byte[] dataBytes = Arrays.copyOf(audioData, audioData.length + 9);
-                    dataBytes[dataBytes.length - 1] = VIDEO_FRAME;
+                    dataBytes[dataBytes.length - 1] = AUDIO_FRAME;
                     byte[] timestamp = longToBytes(System.currentTimeMillis());
                     for (int i = 0; i < 8; i++) {
                         dataBytes[dataBytes.length - 9 + i] = timestamp[i];
@@ -215,6 +217,22 @@ public class MyActivity extends FragmentActivity {
                     chatService.sendMessage(dataBytes);
                 }
             });
+
+//            new Thread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    while (true) {
+//                        try {
+//                            Thread.sleep(30);
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+//                        }
+//                        byte[] dataBytes = new byte[1000];
+//                        dataBytes[dataBytes.length - 1] = VIDEO_FRAME;
+//                        chatService.sendMessage(dataBytes);
+//                    }
+//                }
+//            }).start();
         }
     };
 
